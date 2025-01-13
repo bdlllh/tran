@@ -289,5 +289,72 @@ const Converter = () => {
     </div>
   );
 };
+// ...保持其他代码不变...
 
+return (
+  <div className="w-full max-w-3xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
+    {/* 标题区域 */}
+    <div className="text-center">
+      <h1 className="text-xl md:text-2xl font-bold text-gray-800">格式转换工具</h1>
+      <p className="text-xs md:text-sm text-gray-600 mt-1">支持三种格式互转</p>
+    </div>
+
+    {/* 输入区域 */}
+    <div className="relative">
+      <textarea
+        className="w-full h-28 md:h-32 p-3 md:p-4 border rounded-lg resize-none text-sm md:text-base focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+        placeholder="请输入需要转换的内容..."
+        value={inputText}
+        onChange={handleInputChange}
+      />
+      <div className="absolute top-2 right-2 px-2 py-1 bg-gray-100 rounded-full text-xs md:text-sm text-gray-600">
+        {inputType === 'magnet' ? '磁力链接' : 
+         inputType === 'names' ? '百家姓' :
+         inputType === 'value' ? '核心价值观' : '等待输入'}
+      </div>
+    </div>
+
+    {/* 结果区域组件优化 */}
+    const ResultSection = ({ title, content, type }) => (
+      <div className="p-3 md:p-4 border rounded-lg bg-white relative group">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm md:text-base font-medium text-gray-700">{title}</span>
+          <button
+            onClick={() => handleCopy(content, type)}
+            className={`min-w-[4rem] h-8 px-3 rounded-full text-xs md:text-sm flex items-center justify-center gap-1 transition-colors ${
+              copyStatus[type] 
+                ? 'bg-green-100 text-green-600' 
+                : 'hover:bg-gray-100 text-gray-600'
+            }`}
+            disabled={!content}
+          >
+            <Copy size={14} className="hidden md:block" />
+            {copyStatus[type] ? '已复制' : '复制'}
+          </button>
+        </div>
+        <div className="break-all text-sm md:text-base text-gray-600 min-h-[2.5rem] bg-gray-50 rounded p-2 md:p-3">
+          {content || '等待输入...'}
+        </div>
+        {content && (
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-5 active:bg-opacity-10 transition-all duration-200 rounded-lg cursor-pointer"
+            onClick={() => handleCopy(content, type)}
+          />
+        )}
+      </div>
+    );
+
+    <div className="space-y-3 md:space-y-4">
+      <ResultSection title="磁力链接" content={results.magnet} type="magnet" />
+      <ResultSection title="百家姓" content={results.bjx} type="bjx" />
+      <ResultSection title="核心价值观" content={results.value} type="value" />
+    </div>
+
+    <p className="text-xs md:text-sm text-gray-500 text-center">
+      支持三种格式互转，点击任意结果区域可快速复制
+    </p>
+  </div>
+);
+
+// ...保持其他代码不变...
 export default Converter;
