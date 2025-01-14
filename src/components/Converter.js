@@ -16,7 +16,7 @@ const Converter = () => {
     "花": "S", "方": "T", "俞": "U", "任": "V", "袁": "W", "柳": "X",
     "唐": "Y", "罗": "Z", "薛": ".", "伍": "-", "余": "_", "米": "+",
     "贝": "=", "姚": "/", "孟": "?", "顾": "#", "尹": "%", "江": "&",
-    "钟": "*"
+    "钟": "*", "竺": ":" // 添加了竺=>:的映射
   }), []);
 
   // 核心价值观数组
@@ -102,11 +102,8 @@ const Converter = () => {
   // 百家姓转磁力链接
   const bjx2mag = useCallback((text) => {
     const str = text.trim().split('');
-    let result = '';
-    
-    if (str.length === 40) {
-      result = 'magnet:?xt=urn:btih:';
-    }
+    // 直接添加磁力链接头，移除长度检查
+    let result = 'magnet:?xt=urn:btih:';
     
     for (const char of str) {
       result += characterMap[char] || char;
