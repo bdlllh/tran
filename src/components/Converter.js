@@ -2,7 +2,6 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { Copy } from 'lucide-react';
 
 const Converter = () => {
-  // 状态定义
   const [inputText, setInputText] = useState('');
   const [results, setResults] = useState({
     magnet: '',
@@ -26,9 +25,10 @@ const Converter = () => {
     "花": "S", "方": "T", "俞": "U", "任": "V", "袁": "W", "柳": "X",
     "唐": "Y", "罗": "Z", "薛": ".", "伍": "-", "余": "_", "米": "+",
     "贝": "=", "姚": "/", "孟": "?", "顾": "#", "尹": "%", "江": "&",
-    "钟": "*", "竺": ":"
+    "钟": "*", "竺": ":" 
   }), []);
 
+  // 构建反向映射表
   const reverseCharacterMap = useMemo(() => 
     Object.fromEntries(Object.entries(characterMap).map(([key, value]) => [value, key]))
   , [characterMap]);
@@ -38,9 +38,10 @@ const Converter = () => {
     ["富强", "民主", "文明", "和谐", "自由", "平等", "公正", "法治", "爱国", "敬业", "诚信", "友善"]
   ), []);
 
-  // 工具函数
+  // 随机布尔值生成器
   const randBin = useCallback(() => Math.random() >= 0.5, []);
 
+  // 字符串转UTF8十六进制
   const stringToHex = useCallback((str) => {
     const notEncoded = /[A-Za-z0-9\-\_\.\!\~\*\'\(\)]/g;
     const str1 = str.replace(notEncoded, c => c.charCodeAt(0).toString(16));
@@ -48,6 +49,7 @@ const Converter = () => {
     return str2.replace(/%/g, '').toUpperCase();
   }, []);
 
+  // 十六进制转十二进制数组（保留随机性）
   const hex2duo = useCallback((hexs) => {
     const duo = [];
     for(let c of hexs) {
@@ -67,6 +69,7 @@ const Converter = () => {
     return duo;
   }, [randBin]);
 
+  // 十二进制数组转十六进制
   const duo2hex = useCallback((duo) => {
     const hex = [];
     let i = 0;
@@ -87,13 +90,14 @@ const Converter = () => {
     return hex.map(v => v.toString(16).toUpperCase()).join('');
   }, []);
 
-  // 核心价值观编码解码
+  // 核心价值观编码（利用十二进制数组）
   const encodeToValues = useCallback((str) => {
     const hex = stringToHex(str);
     const duo = hex2duo(hex);
     return duo.map(d => coreValues[d]).join('');
   }, [stringToHex, hex2duo, coreValues]);
 
+  // 核心价值观解码
   const decodeFromValues = useCallback((encoded) => {
     const duo = [];
     let current = '';
@@ -123,7 +127,7 @@ const Converter = () => {
     }
   }, [coreValues, duo2hex]);
 
-  // 百家姓转换
+  // 百家姓转磁力链接
   const bjx2mag = useCallback((text) => {
     const str = text.trim().split('');
     let result = 'magnet:?xt=urn:btih:';
@@ -135,21 +139,20 @@ const Converter = () => {
     return result;
   }, [characterMap]);
 
-const mag2others = useCallback((text) => {
-  // 使用正则表达式提取40位hash值
-  const hashMatch = text.match(/urn:btih:([a-fA-F0-9]{40})/);
-  const hash = hashMatch ? hashMatch[1] : '';
-  let bjxResult = '';
-  
-  for (const char of hash) {
-    bjxResult += reverseCharacterMap[char] || char;
-  }
-  
-  const valueResult = encodeToValues(hash);
-  return { bjx: bjxResult, value: valueResult };
-}, [reverseCharacterMap, encodeToValues]);
+  // 磁力链接转其他格式
+  const mag2others = useCallback((text) => {
+    const hash = text.replace('magnet:?xt=urn:btih:', '').split('&')[0];
+    let bjxResult = '';
+    
+    for (const char of hash) {
+      bjxResult += reverseCharacterMap[char] || char;
+    }
+    
+    const valueResult = encodeToValues(hash);
+    return { bjx: bjxResult, value: valueResult };
+  }, [reverseCharacterMap, encodeToValues]);
 
-  // 输入类型检测
+  // 检测输入类型
   const detectInputType = useCallback((text) => {
     if (!text) return '';
     if (text.startsWith('magnet:')) return 'magnet';
@@ -162,7 +165,7 @@ const mag2others = useCallback((text) => {
     return '';
   }, [coreValues]);
 
-  // 输入处理
+  // 处理输入变化
   const handleInputChange = useCallback((e) => {
     const text = e.target.value;
     setInputText(text);
@@ -211,7 +214,7 @@ const mag2others = useCallback((text) => {
     setResults(newResults);
   }, [detectInputType, mag2others, bjx2mag, decodeFromValues]);
 
-  // 复制功能
+  // 处理复制功能
   const handleCopy = useCallback((text, type) => {
     if (!text) return;
     
@@ -272,7 +275,6 @@ const mag2others = useCallback((text) => {
     );
   };
 
-  // 渲染UI
   return (
     <div className="w-full max-w-3xl mx-auto p-6 space-y-6">
       {/* 输入区域 */}
