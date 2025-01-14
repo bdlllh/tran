@@ -155,8 +155,46 @@ const Converter = () => {
 
   // UI部分代码保持不变...
   
-  return (
-    // JSX部分保持不变...
+return (
+    <div className="w-full max-w-3xl mx-auto p-6 space-y-6">
+      {/* 输入区域 */}
+      <div className="relative">
+        <textarea
+          className="w-full h-32 p-4 border rounded-lg resize-none"
+          placeholder="请输入磁力链接、百家姓或核心价值观文字"
+          value={inputText}
+          onChange={handleInputChange}
+        />
+        <div className="absolute top-2 right-2 text-sm text-gray-500">
+          {inputType === 'magnet' ? '磁力链接' : 
+           inputType === 'names' ? '百家姓' :
+           inputType === 'value' ? '核心价值观' : '等待输入'}
+        </div>
+      </div>
+
+      {/* 转换结果区域 */}
+      <div className="space-y-4">
+        <ResultSection 
+          title="磁力链接" 
+          content={results.magnet} 
+          type="magnet"
+        />
+        <ResultSection 
+          title="百家姓" 
+          content={results.bjx} 
+          type="bjx"
+        />
+        <ResultSection 
+          title="核心价值观" 
+          content={results.value} 
+          type="value"
+        />
+      </div>
+
+      <p className="text-sm text-gray-500">
+        小贴士：支持三种格式互转，系统会自动识别输入类型。每个结果都可以独立复制。
+      </p>
+    </div>
   );
 };
 
