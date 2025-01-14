@@ -2,7 +2,17 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { Copy } from 'lucide-react';
 
 const Converter = () => {
-  // 百家姓映射表保持不变
+  // 状态定义
+  const [inputText, setInputText] = useState('');
+  const [results, setResults] = useState({
+    magnet: '',
+    bjx: '',
+    value: ''
+  });
+  const [inputType, setInputType] = useState('');
+  const [copyStatus, setCopyStatus] = useState({});
+
+  // 百家姓映射表
   const characterMap = useMemo(() => ({
     "赵": "0", "钱": "1", "孙": "2", "李": "3", "周": "4", "吴": "5",
     "郑": "6", "王": "7", "冯": "8", "陈": "9", "褚": "a", "卫": "b",
@@ -16,18 +26,21 @@ const Converter = () => {
     "花": "S", "方": "T", "俞": "U", "任": "V", "袁": "W", "柳": "X",
     "唐": "Y", "罗": "Z", "薛": ".", "伍": "-", "余": "_", "米": "+",
     "贝": "=", "姚": "/", "孟": "?", "顾": "#", "尹": "%", "江": "&",
-    "钟": "*", "竺": ":" // 包含了竺=>:的映射
+    "钟": "*", "竺": ":"
   }), []);
+
+  const reverseCharacterMap = useMemo(() => 
+    Object.fromEntries(Object.entries(characterMap).map(([key, value]) => [value, key]))
+  , [characterMap]);
 
   // 核心价值观数组
   const coreValues = useMemo(() => (
     ["富强", "民主", "文明", "和谐", "自由", "平等", "公正", "法治", "爱国", "敬业", "诚信", "友善"]
   ), []);
 
-  // 生成随机布尔值
+  // 工具函数
   const randBin = useCallback(() => Math.random() >= 0.5, []);
 
-  // 字符串转UTF8十六进制
   const stringToHex = useCallback((str) => {
     const notEncoded = /[A-Za-z0-9\-\_\.\!\~\*\'\(\)]/g;
     const str1 = str.replace(notEncoded, c => c.charCodeAt(0).toString(16));
@@ -35,7 +48,6 @@ const Converter = () => {
     return str2.replace(/%/g, '').toUpperCase();
   }, []);
 
-  // 十六进制转十二进制数组
   const hex2duo = useCallback((hexs) => {
     const duo = [];
     for(let c of hexs) {
@@ -55,7 +67,6 @@ const Converter = () => {
     return duo;
   }, [randBin]);
 
-  // 十二进制数组转十六进制
   const duo2hex = useCallback((duo) => {
     const hex = [];
     let i = 0;
@@ -76,14 +87,13 @@ const Converter = () => {
     return hex.map(v => v.toString(16).toUpperCase()).join('');
   }, []);
 
-  // 核心价值观编码
+  // 核心价值观编码解码
   const encodeToValues = useCallback((str) => {
     const hex = stringToHex(str);
     const duo = hex2duo(hex);
     return duo.map(d => coreValues[d]).join('');
   }, [stringToHex, hex2duo, coreValues]);
 
-  // 核心价值观解码
   const decodeFromValues = useCallback((encoded) => {
     const duo = [];
     let current = '';
@@ -93,8 +103,7 @@ const Converter = () => {
       const valueIndex = coreValues.indexOf(current);
       
       if(valueIndex !== -1) {
-        const d = valueIndex;
-        duo.push(d);
+        duo.push(valueIndex);
         current = '';
       } else if(current.length === 2) {
         if(!coreValues.some(value => value.startsWith(current))) {
@@ -114,20 +123,31 @@ const Converter = () => {
     }
   }, [coreValues, duo2hex]);
 
-  // 以下代码保持不变...
-  const reverseCharacterMap = useMemo(() => 
-    Object.fromEntries(Object.entries(characterMap).map(([key, value]) => [value, key]))
-  , [characterMap]);
+  // 百家姓转换
+  const bjx2mag = useCallback((text) => {
+    const str = text.trim().split('');
+    let result = 'magnet:?xt=urn:btih:';
+    
+    for (const char of str) {
+      result += characterMap[char] || char;
+    }
+    
+    return result;
+  }, [characterMap]);
 
-  const [inputText, setInputText] = useState('');
-  const [results, setResults] = useState({
-    magnet: '',
-    bjx: '',
-    value: ''
-  });
-  const [inputType, setInputType] = useState('');
+  const mag2others = useCallback((text) => {
+    const hash = text.replace('magnet:?xt=urn:btih:', '');
+    let bjxResult = '';
+    
+    for (const char of hash) {
+      bjxResult += reverseCharacterMap[char] || char;
+    }
+    
+    const valueResult = encodeToValues(hash);
+    return { bjx: bjxResult, value: valueResult };
+  }, [reverseCharacterMap, encodeToValues]);
 
-  // 检测输入类型
+  // 输入类型检测
   const detectInputType = useCallback((text) => {
     if (!text) return '';
     if (text.startsWith('magnet:')) return 'magnet';
@@ -140,22 +160,118 @@ const Converter = () => {
     return '';
   }, [coreValues]);
 
-  // 百家姓转磁力链接
-  const bjx2mag = useCallback((text) => {
-    const str = text.trim().split('');
-    // 直接添加磁力链接头
-    let result = 'magnet:?xt=urn:btih:';
+  // 输入处理
+  const handleInputChange = useCallback((e) => {
+    const text = e.target.value;
+    setInputText(text);
+    const type = detectInputType(text);
+    setInputType(type);
     
-    for (const char of str) {
-      result += characterMap[char] || char;
+    if (!text) {
+      setResults({ magnet: '', bjx: '', value: '' });
+      return;
     }
-    
-    return result;
-  }, [characterMap]);
 
-  // UI部分代码保持不变...
-  
-return (
+    let newResults = { magnet: '', bjx: '', value: '' };
+
+    try {
+      if (type === 'magnet') {
+        const converted = mag2others(text);
+        newResults = {
+          magnet: text,
+          bjx: converted.bjx,
+          value: converted.value
+        };
+      } else if (type === 'names') {
+        const magnet = bjx2mag(text);
+        const converted = mag2others(magnet);
+        newResults = {
+          magnet: magnet,
+          bjx: text,
+          value: converted.value
+        };
+      } else if (type === 'value') {
+        const decoded = decodeFromValues(text);
+        if (decoded) {
+          const magnet = `magnet:?xt=urn:btih:${decoded}`;
+          const converted = mag2others(magnet);
+          newResults = {
+            magnet: magnet,
+            bjx: converted.bjx,
+            value: text
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Conversion error:', error);
+    }
+
+    setResults(newResults);
+  }, [detectInputType, mag2others, bjx2mag, decodeFromValues]);
+
+  // 复制功能
+  const handleCopy = useCallback((text, type) => {
+    if (!text) return;
+    
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    
+    try {
+      textArea.select();
+      document.execCommand('copy');
+      setCopyStatus(prev => ({ ...prev, [type]: true }));
+      setTimeout(() => {
+        setCopyStatus(prev => ({ ...prev, [type]: false }));
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      alert('复制失败，请手动复制');
+    } finally {
+      document.body.removeChild(textArea);
+    }
+  }, []);
+
+  // 结果区域组件
+  const ResultSection = ({ title, content, type }) => {
+    const copyWithFeedback = useCallback(() => {
+      if (content) {
+        handleCopy(content, type);
+      }
+    }, [content, type]);
+
+    return (
+      <div className="p-3 border rounded-lg bg-white relative group">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm font-medium text-gray-700">{title}</span>
+          <button
+            onClick={copyWithFeedback}
+            className={`text-sm flex items-center gap-1 transition-colors ${
+              copyStatus[type] 
+                ? 'text-green-600' 
+                : 'text-purple-600 hover:text-purple-700'
+            }`}
+            disabled={!content}
+          >
+            <Copy size={14} />
+            {copyStatus[type] ? '已复制' : '复制'}
+          </button>
+        </div>
+        <div className="break-all text-gray-600 min-h-[2rem]">
+          {content || '等待输入...'}
+        </div>
+        {content && (
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-5 transition-all duration-200 rounded-lg cursor-pointer"
+            onClick={copyWithFeedback}
+          />
+        )}
+      </div>
+    );
+  };
+
+  // 渲染UI
+  return (
     <div className="w-full max-w-3xl mx-auto p-6 space-y-6">
       {/* 输入区域 */}
       <div className="relative">
