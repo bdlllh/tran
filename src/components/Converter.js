@@ -135,17 +135,19 @@ const Converter = () => {
     return result;
   }, [characterMap]);
 
-  const mag2others = useCallback((text) => {
-    const hash = text.replace('magnet:?xt=urn:btih:', '');
-    let bjxResult = '';
-    
-    for (const char of hash) {
-      bjxResult += reverseCharacterMap[char] || char;
-    }
-    
-    const valueResult = encodeToValues(hash);
-    return { bjx: bjxResult, value: valueResult };
-  }, [reverseCharacterMap, encodeToValues]);
+const mag2others = useCallback((text) => {
+  // 使用正则表达式提取40位hash值
+  const hashMatch = text.match(/urn:btih:([a-fA-F0-9]{40})/);
+  const hash = hashMatch ? hashMatch[1] : '';
+  let bjxResult = '';
+  
+  for (const char of hash) {
+    bjxResult += reverseCharacterMap[char] || char;
+  }
+  
+  const valueResult = encodeToValues(hash);
+  return { bjx: bjxResult, value: valueResult };
+}, [reverseCharacterMap, encodeToValues]);
 
   // 输入类型检测
   const detectInputType = useCallback((text) => {
